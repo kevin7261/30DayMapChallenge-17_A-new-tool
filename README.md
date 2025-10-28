@@ -69,9 +69,9 @@ public/
 1. **克隆專案**
 
    ```bash
-   git clone https://github.com/kevin7261/30DayMapChallenge-17_A new tool.git
-   cd "30DayMapChallenge-17_A new tool"
-   cd "website/30DayMapChallenge-17_A new tool"
+   git clone https://github.com/kevin7261/30DayMapChallenge-17_A-new-tool.git
+   cd "30DayMapChallenge-17_A-new-tool"
+   cd "website/30DayMapChallenge-17_A-new-tool"
    ```
 
 2. **安裝依賴**
@@ -86,7 +86,7 @@ public/
    npm run serve
    ```
 
-   瀏覽器訪問：`http://localhost:8080/30DayMapChallenge-17_A new tool/`
+   瀏覽器訪問：`http://localhost:8080/30DayMapChallenge-17_A-new-tool/`
 
 4. **構建生產版本**
 
@@ -169,8 +169,8 @@ const southLatLimit = -60; // 南緯限制
 
 ## 🌐 線上展示
 
-- **GitHub Pages**: https://kevin7261.github.io/30DayMapChallenge-17_A new tool/
-- **專案倉庫**: https://github.com/kevin7261/30DayMapChallenge-17_A new tool
+- **GitHub Pages**: https://kevin7261.github.io/30DayMapChallenge-17_A-new-tool/
+- **專案倉庫**: https://github.com/kevin7261/30DayMapChallenge-17_A-new-tool
 
 ## 📝 開發指令
 
