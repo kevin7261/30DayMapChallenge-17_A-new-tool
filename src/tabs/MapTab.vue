@@ -12,7 +12,7 @@
    * 📋 核心功能
    * ─────────────────────────────────────────────────────────────────────────
    * 1. 縣市邊界渲染：
-   *    ✓ 載入 COUNTY_MOI_1140318.geojson
+   *    ✓ 載入 直轄市、縣(市)界線1140318.geojson
    *    ✓ 繪製所有台灣縣市邊界
    *
    * 2. 視覺元素：
@@ -41,8 +41,8 @@
    * ─────────────────────────────────────────────────────────────────────────
    * 📁 數據來源
    * ─────────────────────────────────────────────────────────────────────────
-   * 縣市邊界數據：COUNTY_MOI_1140318.geojson
-   * 路徑：public/data/geojson/COUNTY_MOI_1140318.geojson
+   * 縣市邊界數據：直轄市、縣(市)界線1140318.geojson
+   * 路徑：public/data/geojson/直轄市、縣(市)界線1140318.geojson
    *
    * ─────────────────────────────────────────────────────────────────────────
    * 🔧 使用方式
@@ -171,7 +171,7 @@
 
       /**
        * 縣市 GeoJSON 數據
-       * 來源：COUNTY_MOI_1140318.geojson
+       * 來源：直轄市、縣(市)界線1140318.geojson
        * @type {Ref<Object|null>}
        */
       const countyData = ref(null);
@@ -185,7 +185,7 @@
 
           // 載入縣市 GeoJSON 檔案
           const countyResponse = await fetch(
-            `${process.env.BASE_URL}data/geojson/COUNTY_MOI_1140318.geojson`
+            `${process.env.BASE_URL}data/geojson/直轄市、縣(市)界線1140318.geojson`
           );
 
           // 檢查響應
