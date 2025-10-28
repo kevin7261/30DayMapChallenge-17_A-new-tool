@@ -1,41 +1,43 @@
 <script>
   /**
    * ═══════════════════════════════════════════════════════════════════════════
-   * 🗺️ MapTab.vue - D3.js 台灣縣市地圖組件
+   * 🗺️ MapTab.vue - MapLibre GL JS 台灣縣市 3D 地圖組件
    * ═══════════════════════════════════════════════════════════════════════════
    *
    * @fileoverview
-   * 這是一個基於 D3.js 的台灣縣市地圖視覺化組件。
-   * 本組件負責載入、處理和渲染台灣縣市邊界的 GeoJSON 數據。
+   * 這是一個基於 MapLibre GL JS 的台灣縣市 3D 地圖視覺化組件。
+   * 本組件負責載入、處理和渲染台灣縣市邊界的 GeoJSON 數據，並支持 3D 視角。
    *
    * ─────────────────────────────────────────────────────────────────────────
    * 📋 核心功能
    * ─────────────────────────────────────────────────────────────────────────
    * 1. 縣市邊界渲染：
    *    ✓ 載入 直轄市、縣(市)界線1140318.geojson
-   *    ✓ 繪製所有台灣縣市邊界
+   *    ✓ 以 3D extrusion 方式繪製所有台灣縣市邊界
    *
    * 2. 視覺元素：
-   *    ✓ 白色填充的縣市區域
+   *    ✓ 3D 立體縣市區域
    *    ✓ 黑色縣市邊界線
    *    ✓ 灰色地圖背景
    *
    * 3. 交互功能：
    *    ✓ 滾輪縮放控制
    *    ✓ 拖動平移導航
+   *    ✓ 右鍵拖動旋轉視角（3D）
+   *    ✓ 傾斜視角控制
    *
    * ─────────────────────────────────────────────────────────────────────────
    * 🎨 配色主題
    * ─────────────────────────────────────────────────────────────────────────
    * 灰色      #808080  → 地圖背景
    * 黑色      #000000  → 縣市邊框
-   * 白色      #FFFFFF  → 縣市填充
+   * 白色/藍色漸層      → 3D 縣市填充
    *
    * ─────────────────────────────────────────────────────────────────────────
    * 🛠️ 技術棧
    * ─────────────────────────────────────────────────────────────────────────
    * @requires vue                 - Vue 3.2+ (Composition API)
-   * @requires d3                  - D3.js 7.8+ (地圖繪製庫)
+   * @requires maplibre-gl         - MapLibre GL JS (3D 地圖庫)
    * @requires @/stores/dataStore  - Pinia 狀態管理
    *
    * ─────────────────────────────────────────────────────────────────────────
@@ -55,8 +57,8 @@
    * 📝 維護者
    * ─────────────────────────────────────────────────────────────────────────
    * @author Kevin Cheng
-   * @version 3.0.0
-   * @since 2024
+   * @version 4.0.0
+   * @since 2025
    * @license MIT
    *
    * ═══════════════════════════════════════════════════════════════════════════
@@ -69,8 +71,9 @@
   // Vue 3 核心功能
   import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 
-  // D3.js 地圖庫
-  import * as d3 from 'd3';
+  // MapLibre GL JS
+  import maplibregl from 'maplibre-gl';
+  import 'maplibre-gl/dist/maplibre-gl.css';
 
   // Pinia 狀態管理
   import { useDataStore } from '@/stores/dataStore';
@@ -103,8 +106,7 @@
       // 📦 狀態管理與依賴 (State Management & Dependencies)
       // ═══════════════════════════════════════════════════════════════════════
 
-      // Pinia 數據存儲（保留供未來擴展使用）
-      // eslint-disable-next-line no-unused-vars
+      // Pinia 數據存儲
       const dataStore = useDataStore();
 
       // ═══════════════════════════════════════════════════════════════════════
@@ -118,34 +120,16 @@
       const mapContainer = ref(null);
 
       /**
-       * D3.js SVG 元素
-       * @type {d3.Selection|null}
+       * MapLibre GL 地圖實例
+       * @type {maplibregl.Map|null}
        */
-      let svg = null;
+      let map = null;
 
       /**
-       * D3.js 投影函數
-       * @type {d3.GeoProjection|null}
+       * Popup 實例
+       * @type {maplibregl.Popup|null}
        */
-      let projection = null;
-
-      /**
-       * D3.js 路徑生成器
-       * @type {d3.GeoPath|null}
-       */
-      let path = null;
-
-      /**
-       * D3.js 縮放行為
-       * @type {d3.ZoomBehavior|null}
-       */
-      let zoom = null;
-
-      /**
-       * SVG 主容器組
-       * @type {d3.Selection|null}
-       */
-      let g = null;
+      let popup = null;
 
       // ═══════════════════════════════════════════════════════════════════════
       // 🎛️ 控制狀態 (Control States)
@@ -163,7 +147,7 @@
        * 使用隨機字符串確保多實例時不會衝突
        * @type {Ref<string>}
        */
-      const mapContainerId = ref(`leaflet-map-${Math.random().toString(36).substr(2, 9)}`);
+      const mapContainerId = ref(`maplibre-map-${Math.random().toString(36).substr(2, 9)}`);
 
       // ═══════════════════════════════════════════════════════════════════════
       // 📊 GeoJSON 數據儲存 (GeoJSON Data Storage)
@@ -207,38 +191,92 @@
       };
 
       /**
-       * 🗺️ 繪製台灣縣市
+       * 🗺️ 添加 3D 縣市圖層
        */
-      const drawCounties = () => {
-        if (!g || !countyData.value) {
-          console.error('[MapTab] 無法繪製縣市: g=', !!g, 'countyData=', !!countyData.value);
+      const add3DCountyLayers = () => {
+        if (!map || !countyData.value) {
+          console.error('[MapTab] 無法添加圖層: map=', !!map, 'countyData=', !!countyData.value);
           return;
         }
 
         try {
-          console.log('[MapTab] 開始繪製台灣縣市 GeoJSON');
+          console.log('[MapTab] 開始添加 3D 台灣縣市圖層');
 
-          // 繪製所有縣市
-          g.selectAll('.county')
-            .data(countyData.value.features)
-            .enter()
-            .append('path')
-            .attr('d', path)
-            .attr('class', 'county')
-            .attr('fill', '#FFFFFF') // 白色填充
-            .attr('fill-opacity', 0.8)
-            .attr('stroke', '#000000') // 黑色邊框
-            .attr('stroke-width', 1.5);
+          // 添加數據源
+          map.addSource('counties', {
+            type: 'geojson',
+            data: countyData.value,
+          });
 
-          console.log('[MapTab] 台灣縣市 GeoJSON 繪製完成');
+          // 添加 3D extrusion 圖層
+          map.addLayer({
+            id: 'counties-3d',
+            type: 'fill-extrusion',
+            source: 'counties',
+            paint: {
+              'fill-extrusion-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'COUNTYID'],
+                0,
+                '#ffffff',
+                10000,
+                '#4a90e2',
+              ],
+              'fill-extrusion-height': 50000, // 3D 高度 (米)
+              'fill-extrusion-base': 0,
+              'fill-extrusion-opacity': 0.8,
+            },
+          });
+
+          // 添加縣市邊界線圖層
+          map.addLayer({
+            id: 'counties-outline',
+            type: 'line',
+            source: 'counties',
+            paint: {
+              'line-color': '#000000',
+              'line-width': 2,
+            },
+          });
+
+          // 創建持久的 popup 實例
+          popup = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            className: 'county-popup',
+          });
+
+          // 添加懸停效果
+          map.on('mousemove', 'counties-3d', (e) => {
+            map.getCanvas().style.cursor = 'pointer';
+
+            if (e.features && e.features.length > 0) {
+              const feature = e.features[0];
+              const countyName = feature.properties.COUNTYNAME || '未知縣市';
+
+              // 更新 popup 位置和內容
+              popup.setLngLat(e.lngLat).setHTML(`<strong>${countyName}</strong>`).addTo(map);
+            }
+          });
+
+          map.on('mouseleave', 'counties-3d', () => {
+            map.getCanvas().style.cursor = '';
+            // 移除 popup
+            if (popup) {
+              popup.remove();
+            }
+          });
+
+          console.log('[MapTab] 3D 台灣縣市圖層添加完成');
         } catch (error) {
-          console.error('[MapTab] 台灣縣市 GeoJSON 繪製失敗:', error);
+          console.error('[MapTab] 3D 台灣縣市圖層添加失敗:', error);
         }
       };
 
       /**
        * 🏗️ 創建地圖實例
-       * 初始化 D3.js 地圖並設定基本配置
+       * 初始化 MapLibre GL 地圖並設定基本配置
        */
       const createMap = () => {
         if (!mapContainer.value) return false;
@@ -250,51 +288,68 @@
         }
 
         try {
-          const width = rect.width;
-          const height = rect.height;
+          console.log('[MapTab] 開始創建 MapLibre GL 地圖');
 
-          // 台灣中心位置：緯度 23.5°, 經度 121°
+          // 創建地圖實例
+          map = new maplibregl.Map({
+            container: mapContainer.value,
+            style: {
+              version: 8,
+              sources: {
+                'osm-tiles': {
+                  type: 'raster',
+                  tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                  tileSize: 256,
+                  attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                },
+              },
+              layers: [
+                {
+                  id: 'background',
+                  type: 'background',
+                  paint: {
+                    'background-color': '#808080', // 灰色背景
+                  },
+                },
+                {
+                  id: 'osm-tiles-layer',
+                  type: 'raster',
+                  source: 'osm-tiles',
+                  minzoom: 0,
+                  maxzoom: 22,
+                },
+              ],
+            },
+            center: [120.9, 23.7], // 台灣中心座標
+            zoom: 6.8,
+            pitch: 60, // 傾斜角度 (3D 視角)
+            bearing: 0, // 旋轉角度
+            antialias: true, // 抗鋸齒
+          });
 
-          // 創建 SVG 元素
-          svg = d3
-            .select(mapContainer.value)
-            .append('svg')
-            .attr('width', width)
-            .attr('height', height)
-            .style('background', '#808080'); // 灰色背景
+          // 添加導航控制器 (縮放按鈕)
+          map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-          // 創建投影 - 麥卡托投影，聚焦在台灣
-          projection = d3
-            .geoMercator()
-            .center([121, 23.5]) // 中心點在台灣
-            .scale(6000) // 較大的縮放比例，聚焦在台灣
-            .translate([width / 2, height / 2]);
+          // 地圖載入完成後的處理
+          map.on('load', () => {
+            console.log('[MapTab] MapLibre GL 地圖載入完成');
+            isMapReady.value = true;
 
-          // 創建路徑生成器
-          path = d3.geoPath().projection(projection);
+            // 添加 3D 縣市圖層
+            add3DCountyLayers();
 
-          // 創建容器組
-          g = svg.append('g');
+            // 保存地圖實例到 store
+            dataStore.setMapInstance(map);
 
-          // 設置縮放行為
-          zoom = d3
-            .zoom()
-            .scaleExtent([1, 20]) // 允許縮放 1x 到 20x
-            .on('zoom', (event) => {
-              g.attr('transform', event.transform);
-            });
+            // 將地圖實例傳遞給父組件
+            emit('map-ready', map);
+          });
 
-          svg.call(zoom);
-
-          isMapReady.value = true;
-
-          // 將地圖實例傳遞給父組件
-          emit('map-ready', { svg, projection, path });
-
-          console.log('[MapTab] D3.js 地圖創建成功');
+          console.log('[MapTab] MapLibre GL 地圖創建成功');
           return true;
         } catch (error) {
-          console.error('[MapTab] D3.js 地圖創建失敗:', error);
+          console.error('[MapTab] MapLibre GL 地圖創建失敗:', error);
           return false;
         }
       };
@@ -324,9 +379,7 @@
           console.log(`[MapTab] 嘗試創建地圖 (${attempts}/${maxAttempts})`);
 
           if (createMap()) {
-            console.log('[MapTab] 地圖創建成功，開始繪製圖層');
-            // 繪製台灣縣市
-            drawCounties();
+            console.log('[MapTab] 地圖創建成功');
           } else {
             console.log('[MapTab] 地圖創建失敗，100ms 後重試');
             setTimeout(tryCreateMap, 100);
@@ -345,15 +398,14 @@
 
       // 🧹 生命週期：組件卸載
       onUnmounted(() => {
-        if (svg) {
-          svg.remove();
-          svg = null;
+        if (popup) {
+          popup.remove();
+          popup = null;
         }
-
-        projection = null;
-        path = null;
-        zoom = null;
-        g = null;
+        if (map) {
+          map.remove();
+          map = null;
+        }
         isMapReady.value = false;
       });
 
@@ -369,7 +421,7 @@
 <template>
   <!-- 🗺️ 地圖主容器 -->
   <div id="map-container" class="h-100 w-100 position-relative bg-transparent z-0">
-    <!-- 🗺️ Leaflet 地圖容器 -->
+    <!-- 🗺️ MapLibre GL 地圖容器 -->
     <div :id="mapContainerId" ref="mapContainer" class="h-100 w-100"></div>
   </div>
 </template>
@@ -381,37 +433,48 @@
     overflow: hidden;
   }
 
-  :deep(.leaflet-container) {
-    background: #808080; /* 灰色背景 */
+  /* MapLibre GL 地圖容器樣式 */
+  :deep(.maplibregl-map) {
+    font-family: 'Open Sans', 'Arial', sans-serif;
   }
 
-  :deep(.leaflet-popup-content-wrapper) {
-    background: rgba(0, 43, 127, 0.95); /* 諾魯深藍色半透明 */
-    color: #ffc61e; /* 金黃色文字 */
-    border: 2px solid #ffc61e; /* 金黃色邊框 */
+  /* MapLibre GL 控制器樣式 */
+  :deep(.maplibregl-ctrl-group) {
+    background: rgba(0, 43, 127, 0.95);
+    border: 1px solid #ffc61e;
   }
 
-  :deep(.leaflet-popup-tip) {
-    background: rgba(0, 43, 127, 0.95); /* 諾魯深藍色半透明 */
+  :deep(.maplibregl-ctrl button) {
+    background-color: rgba(0, 43, 127, 0.95);
+    color: #ffc61e;
   }
 
-  :deep(.leaflet-tooltip) {
-    background-color: rgba(0, 43, 127, 0.95) !important; /* 諾魯深藍色 */
-    color: #ffc61e !important; /* 金黃色文字 */
-    border: 1px solid #ffc61e !important; /* 金黃色邊框 */
-    font-size: 14px;
-    padding: 8px 12px;
+  :deep(.maplibregl-ctrl button:hover) {
+    background-color: rgba(0, 43, 127, 1);
+  }
+
+  /* MapLibre GL Popup 樣式 */
+  :deep(.maplibregl-popup-content) {
+    background: rgba(0, 43, 127, 0.95);
+    color: #ffc61e;
+    border: 2px solid #ffc61e;
     border-radius: 4px;
-    line-height: 1.4;
+    padding: 12px 16px;
+    font-size: 14px;
   }
 
-  :deep(.map-tooltip) {
-    background-color: rgba(0, 43, 127, 0.95); /* 諾魯深藍色 */
-    color: #ffc61e; /* 金黃色文字 */
-    border: 1px solid #ffc61e; /* 金黃色邊框 */
-    padding: 8px 12px;
-    border-radius: 4px;
-    font-size: 14px;
-    line-height: 1.4;
+  :deep(.maplibregl-popup-tip) {
+    border-top-color: rgba(0, 43, 127, 0.95);
+  }
+
+  :deep(.maplibregl-popup-close-button) {
+    color: #ffc61e;
+    font-size: 20px;
+    padding: 0 8px;
+  }
+
+  :deep(.maplibregl-popup-close-button:hover) {
+    background-color: transparent;
+    color: #ffffff;
   }
 </style>
