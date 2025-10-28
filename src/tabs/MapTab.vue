@@ -21,11 +21,12 @@
    *    ✓ 黑色縣市邊界線
    *    ✓ 灰色地圖背景
    *    ✓ 核電廠位置標記（紅色圓點）
-   *    ✓ 核電廠影響範圍立體球體（真正的球體，圓心在核電廠座標）
-   *      - 使用 30 層薄圓環創建球體
+   *    ✓ 核電廠影響範圍立體半球（真正的半圓球，球心在地面）
+   *      - 使用 30 層薄圓環創建半球
    *      - 球體半徑 30 公里
-   *      - 圓心位於核電廠座標位置（高度 30 公里）
-   *      - 紅色半透明，中間最不透明
+   *      - 球心位於地面的核電廠座標（高度 0）
+   *      - 半球高度從地面到 30 公里
+   *      - 紅色半透明（底層 0.3，頂層 0.15）
    *    ✓ 核電廠名稱標籤（紅色文字）
    *
    * 3. 交互功能：
@@ -47,15 +48,16 @@
    *
    * 每座核電廠標記包含：
    * - 紅色圓點標記（半徑 8 像素，白色邊框）
-   * - 立體球體影響範圍（真正的球體，圓心在核電廠座標位置）
-   *   ・ 球體技術：30 層薄圓環，使用 fill-extrusion 的 base 和 height 創建球體
+   * - 立體半球影響範圍（真正的半圓球，球心在地面的核電廠座標）
+   *   ・ 球體技術：30 層薄圓環，使用 fill-extrusion 的 base 和 height 創建半球
    *   ・ 數學公式：使用球體方程 r² = R² - h²，計算每層的半徑
-   *   ・ 球心位置：核電廠座標，高度 30 公里
+   *   ・ 球心位置：地面的核電廠座標（高度 0）
    *   ・ 球體半徑：30 公里（圓形多邊形，64個邊）
-   *   ・ 每層厚度：約 500 米
-   *   ・ 顏色：紅色半透明（中間最不透明，邊緣較透明）
+   *   ・ 半球高度：從地面到 30 公里（只有上半球）
+   *   ・ 每層厚度：約 1000 米
+   *   ・ 顏色：紅色半透明（底層 0.3，頂層 0.15，更透明）
    *   ・ 邊界線：紅色實線（寬度 2 像素，透明度 60%）
-   *   ・ 球體效果：完整的球形，圓心在核電廠位置
+   *   ・ 球體效果：半圓球形，球心在地面的核電廠位置
    * - 名稱標籤（紅色文字，白色光暈）
    * - 無懸停效果（按照需求移除所有交互）
    *
@@ -110,7 +112,7 @@
    * 📝 維護者
    * ─────────────────────────────────────────────────────────────────────────
    * @author Kevin Cheng
-   * @version 9.0.0
+   * @version 10.0.0
    * @since 2025
    * @license MIT
    *
@@ -317,20 +319,20 @@
           }, // 核四廠
         ]; // plants 陣列結束
 
-        // 創建真正的球體效果：圓心在核電廠座標位置
+        // 創建半圓球效果：圓心在地面的核電廠座標位置
         const layers = 30; // 球體的層數（越多越圓滑）
         const sphereRadius = 30000; // 球體半徑（米）
-        const centerHeight = sphereRadius; // 球心高度（米），設為半徑，使球體底部在地面
+        const centerHeight = 0; // 球心高度（米），設為 0，因為球心在地面
 
         // 為每一層創建 GeoJSON 數據
         const sphereLayersData = []; // 存儲所有層的數據陣列
 
         for (let layer = 0; layer < layers; layer++) {
           // 遍歷每一層
-          // 計算當前層相對於球心的高度偏移（從 -radius 到 +radius）
+          // 計算當前層相對於球心的高度偏移（從 0 到 +radius，只要上半球）
           // 使用均勻分布的高度
-          const heightOffset = (layer / (layers - 1)) * (2 * sphereRadius) - sphereRadius; // heightOffset: 相對於球心的高度偏移
-          const currentHeight = centerHeight + heightOffset; // currentHeight: 當前層的絕對高度
+          const heightOffset = (layer / (layers - 1)) * sphereRadius; // heightOffset: 相對於球心的高度偏移（0 到 30km）
+          const currentHeight = centerHeight + heightOffset; // currentHeight: 當前層的絕對高度（從地面往上）
 
           // 使用球體方程計算當前層的半徑：r² = R² - h²
           // 其中 R 是球體半徑，h 是相對於球心的高度偏移
@@ -359,13 +361,17 @@
             }, // geometry 結束
           })); // map 結束
 
+          // 計算當前層的基礎高度（每層約 1000 米厚）
+          const layerThickness = sphereRadius / layers; // layerThickness: 每層的厚度
+          const baseHeight = currentHeight - layerThickness; // baseHeight: 當前層的基礎高度
+
           // 將當前層的數據添加到陣列
           sphereLayersData.push({
             // 層數據對象
             type: 'FeatureCollection', // type: 數據類型為 FeatureCollection
             features: features, // features: 當前層的所有要素
             height: currentHeight, // height: 當前層的高度（用於設置 fill-extrusion-height）
-            base: currentHeight - 500, // base: 當前層的基礎高度（每層厚度約 500 米）
+            base: baseHeight, // base: 當前層的基礎高度
           }); // push 結束
         } // for 結束：層遍歷結束
 
@@ -462,9 +468,9 @@
             data: layerData, // data: 當前層的 GeoJSON 數據
           }); // addSource 結束
 
-          // 計算當前層的透明度（中間層最不透明，邊緣層較透明）
-          const centerDistance = Math.abs(index / (layers - 1) - 0.5) * 2; // centerDistance: 距離中心的距離（0 到 1）
-          const opacity = 0.4 - centerDistance * 0.25; // opacity: 透明度，中間 0.4，邊緣 0.15
+          // 計算當前層的透明度（底層較不透明，頂層較透明，創造漸變效果）
+          const heightRatio = index / (layers - 1); // heightRatio: 當前層高度比例（0 到 1）
+          const opacity = 0.3 - heightRatio * 0.15; // opacity: 透明度，底層 0.3，頂層 0.15（更透明）
 
           // 添加當前層的 3D 圖層
           map.addLayer({
@@ -541,8 +547,10 @@
           }, // paint 屬性結束
         }); // addLayer 結束：標籤圖層
 
-        console.log('[MapTab] 核電廠標記和立體球體添加完成'); // 輸出日誌：記錄添加完成
-        console.log(`[MapTab] 球體使用 ${layers} 層創建，圓心在核電廠座標位置，半徑 30 公里`); // 輸出日誌：記錄球體資訊
+        console.log('[MapTab] 核電廠標記和立體半球添加完成'); // 輸出日誌：記錄添加完成
+        console.log(
+          `[MapTab] 半球使用 ${layers} 層創建，球心在地面的核電廠座標，半徑 30 公里，高度 0-30 公里`
+        ); // 輸出日誌：記錄半球資訊
       }; // addNuclearPlants 函數結束
 
       /**
