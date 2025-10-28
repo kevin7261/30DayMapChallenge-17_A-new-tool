@@ -519,9 +519,9 @@
           source: 'nuclear-plants', // source: 使用的數據源 ID
           paint: {
             // paint: 繪製屬性
-            'circle-radius': 8, // 'circle-radius': 標記點半徑設為 8 像素
+            'circle-radius': 4, // 'circle-radius': 標記點半徑設為 4 像素（較小）
             'circle-color': '#FF0000', // 'circle-color': 標記點顏色設為紅色
-            'circle-stroke-width': 2, // 'circle-stroke-width': 標記點邊框寬度設為 2 像素
+            'circle-stroke-width': 1, // 'circle-stroke-width': 標記點邊框寬度設為 1 像素（較細）
             'circle-stroke-color': '#FFFFFF', // 'circle-stroke-color': 標記點邊框顏色設為白色
           }, // paint 屬性結束
         }); // addLayer 結束：標記點圖層
