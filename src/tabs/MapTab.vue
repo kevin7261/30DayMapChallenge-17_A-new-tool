@@ -247,7 +247,7 @@
           viewer.entities.add({
             polyline: {
               positions: Cesium.Cartesian3.fromDegreesArray(circleDegrees),
-              width: 6,
+              width: 2,
               material: new Cesium.Color(1.0, 0.5, 0.0, 1.0), // 橙色
               clampToGround: true,
             },
