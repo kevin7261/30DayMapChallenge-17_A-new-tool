@@ -23,12 +23,10 @@
 
 <template>
   <!-- 🏠 App.vue - 主應用程式組件 (Main Application Component) -->
-  <!-- 提供應用程式整體框架，使用 Bootstrap 實現滿版無空隙佈局 -->
-  <div id="app" class="d-flex flex-column vh-100">
+  <!-- 提供應用程式整體框架，實現滿版無空隙佈局 -->
+  <div id="app">
     <!-- 📱 主要內容區域 (Main Content Area) -->
-    <div class="d-flex flex-column overflow-hidden">
-      <router-view />
-    </div>
+    <router-view />
   </div>
 </template>
 
@@ -44,5 +42,24 @@
   @import './assets/css/common.css';
 
   /* 📱 應用程式特定樣式 (App-Specific Styles) */
-  /* 其他樣式已整合至 common.css 中，避免重複定義 */
+  /* 強制全屏佈局，覆蓋所有可能的限制 */
+  #app {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    z-index: 0 !important;
+  }
+
+  /* 確保所有子元素都不會限制大小 */
+  #app > * {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
 </style>

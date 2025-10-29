@@ -38,7 +38,7 @@
 
 <template>
   <!-- 🏠 全屏地圖容器 -->
-  <div class="vh-100 vw-100 overflow-hidden">
+  <div class="fullscreen-container">
     <!-- 🗺️ 地圖組件（全屏） -->
     <MapTab @map-ready="setMapInstance" />
   </div>
@@ -46,4 +46,28 @@
 
 <style>
   @import '../assets/css/common.css';
+
+  .fullscreen-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    z-index: 0 !important;
+    background: transparent !important;
+  }
+
+  /* 確保沒有任何父容器限制大小 */
+  body,
+  html,
+  #app {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
 </style>

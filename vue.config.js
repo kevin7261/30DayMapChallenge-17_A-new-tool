@@ -136,6 +136,9 @@
 // 此函數提供 TypeScript 類型提示，即使在 JavaScript 項目中也能獲得更好的
 // IDE 支援和自動補全
 const { defineConfig } = require('@vue/cli-service');
+const webpack = require('webpack');
+const path = require('path');
+const CopyPlugin = require('copy-webpack-plugin');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ⚙️ Vue CLI 配置對象 (Vue CLI Configuration Object)
@@ -245,6 +248,64 @@ module.exports = defineConfig({
    * - "not ie 11"：排除 IE11
    */
   transpileDependencies: true,
+
+  // ───────────────────────────────────────────────────────────────────────
+  // 🗺️ CesiumJS Webpack 配置 (CesiumJS Webpack Configuration)
+  // ───────────────────────────────────────────────────────────────────────
+
+  /**
+   * configureWebpack - CesiumJS 特殊配置
+   *
+   * CesiumJS 需要特殊的 webpack 配置來正確處理其資源和模組
+   */
+  configureWebpack: {
+    plugins: [
+      // 定義 CesiumJS 相關的環境變數
+      new webpack.DefinePlugin({
+        CESIUM_BASE_URL: JSON.stringify('/30DayMapChallenge-17_A-new-tool/cesium/'),
+      }),
+      // 複製 CesiumJS 靜態資源
+      new CopyPlugin({
+        patterns: [
+          {
+            from: path.resolve(__dirname, 'node_modules/cesium/Build/Cesium/Workers'),
+            to: path.resolve(__dirname, 'dist/cesium/Workers'),
+          },
+          {
+            from: path.resolve(__dirname, 'node_modules/cesium/Build/Cesium/ThirdParty'),
+            to: path.resolve(__dirname, 'dist/cesium/ThirdParty'),
+          },
+          {
+            from: path.resolve(__dirname, 'node_modules/cesium/Build/Cesium/Assets'),
+            to: path.resolve(__dirname, 'dist/cesium/Assets'),
+          },
+          {
+            from: path.resolve(__dirname, 'node_modules/cesium/Build/Cesium/Widgets'),
+            to: path.resolve(__dirname, 'dist/cesium/Widgets'),
+          },
+        ],
+      }),
+    ],
+    resolve: {
+      alias: {
+        cesium: path.resolve(__dirname, 'node_modules/cesium/Source/Cesium.js'),
+      },
+    },
+    module: {
+      rules: [
+        {
+          test: /\.js$/,
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: ['@babel/preset-env'],
+            },
+          },
+          include: path.resolve(__dirname, 'node_modules/cesium/Source'),
+        },
+      ],
+    },
+  },
 
   // ───────────────────────────────────────────────────────────────────────
   // 🖥️ 開發伺服器配置 (Development Server Configuration)
