@@ -234,26 +234,26 @@
           viewer.entities.add({
             position: Cesium.Cartesian3.fromDegrees(plant.lon, plant.lat),
             point: {
-              pixelSize: 8,
-              color: Cesium.Color.RED,
-              outlineColor: Cesium.Color.WHITE,
-              outlineWidth: 1,
+              pixelSize: 12,
+              color: Cesium.Color.YELLOW,
+              outlineColor: Cesium.Color.ORANGE,
+              outlineWidth: 2,
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
           });
 
-          // 添加 30 公里影響範圍圓圈（紅色實線邊框，採用地貼折線更穩定）
+          // 添加 30 公里影響範圍圓圈（橙黃色實線邊框，採用地貼折線更穩定）
           const circleDegrees = buildCircleDegreesArray(plant.lon, plant.lat, 30000, 256);
           viewer.entities.add({
             polyline: {
               positions: Cesium.Cartesian3.fromDegreesArray(circleDegrees),
-              width: 5,
-              material: Cesium.Color.RED,
+              width: 6,
+              material: new Cesium.Color(1.0, 0.5, 0.0, 1.0), // 橙色
               clampToGround: true,
             },
           });
 
-          // 添加立體半球影響範圍
+          // 添加立體半球影響範圍 - 從黃色到深紅色的輻射漸變
           const layers = 50;
           const sphereRadius = 30000;
 
@@ -264,14 +264,20 @@
             if (radiusSquared < 0) continue;
 
             const currentRadius = Math.sqrt(radiusSquared);
-            const opacity = 0.025 - (layer / layers) * 0.01;
+            const opacity = 0.035 - (layer / layers) * 0.015;
+
+            // 從中心黃色漸變到外圍深紅色
+            const t = layer / layers; // 0 (中心) 到 1 (外圍)
+            const r = 1.0; // 紅色保持最大
+            const g = 1.0 - t * 0.8; // 從 1.0 (黃色) 漸變到 0.2 (紅色)
+            const b = 0.0;
 
             viewer.entities.add({
               position: Cesium.Cartesian3.fromDegrees(plant.lon, plant.lat, heightOffset),
               ellipse: {
                 semiMajorAxis: currentRadius,
                 semiMinorAxis: currentRadius,
-                material: Cesium.Color.RED.withAlpha(opacity),
+                material: new Cesium.Color(r, g, b, opacity),
                 height: heightOffset,
                 heightReference: Cesium.HeightReference.NONE,
               },
@@ -315,7 +321,7 @@
                 polyline: {
                   positions: Cesium.Cartesian3.fromDegreesArray(flatCoordinates),
                   width: 2,
-                  material: Cesium.Color.WHITE,
+                  material: new Cesium.Color(0.3, 0.3, 0.3, 0.8), // 深灰色半透明
                   clampToGround: true,
                 },
               });
