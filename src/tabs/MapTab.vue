@@ -230,14 +230,13 @@
         ];
 
         plants.forEach((plant) => {
-          // 添加核電廠標記點（不顯示標籤）
+          // 添加核電廠標記點（平面圓點）
           viewer.entities.add({
             position: Cesium.Cartesian3.fromDegrees(plant.lon, plant.lat),
             point: {
-              pixelSize: 12,
+              pixelSize: 6,
               color: Cesium.Color.YELLOW,
-              outlineColor: Cesium.Color.ORANGE,
-              outlineWidth: 2,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY, // 確保平面顯示
               heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             },
           });
@@ -320,8 +319,8 @@
               viewer.entities.add({
                 polyline: {
                   positions: Cesium.Cartesian3.fromDegreesArray(flatCoordinates),
-                  width: 2,
-                  material: new Cesium.Color(0.3, 0.3, 0.3, 0.8), // 深灰色半透明
+                  width: 1,
+                  material: Cesium.Color.WHITE, // 白色邊界線
                   clampToGround: true,
                 },
               });
